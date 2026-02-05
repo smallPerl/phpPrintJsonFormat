@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "JSON Formatter",
+  "version": "1.0",
+  "description": "格式化JSON字符串的工具 - 支持弹出窗口和独立页面",
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": [
+    "clipboardWrite",
+    "tabs",
+    "storage"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [{
+    "resources": ["tab.html", "tab.js", "styles.css"],
+    "matches": ["<all_urls>"]
+  }]
+}

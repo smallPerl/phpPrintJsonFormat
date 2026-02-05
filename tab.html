@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>phpPrintJSON格式化工具 - 独立标签页</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 自适应屏幕样式 */
+        body {
+            width: 100%;
+            height: 100vh;
+            min-height: 600px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        textarea {
+            height: 200px;
+            min-height: 150px;
+        }
+        
+        .result-container {
+            max-height: 500px;
+            min-height: 300px;
+        }
+        
+        .button-group {
+            flex-wrap: wrap;
+        }
+        
+        .features {
+            flex-wrap: wrap;
+        }
+        
+        /* 视图模式选择器样式 */
+        .view-mode-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .view-mode-selector label {
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        #default-view-mode {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background-color: #667eea;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        #default-view-mode:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background-color: #5a6fd8;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .features {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .view-mode-selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            #default-view-mode {
+                width: 100%;
+            }
+            
+            .checkbox-label {
+                margin-left: 0;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>phpPrintJSON格式化工具</h1>
+        
+        <div class="input-section">
+            <label for="json-input">输入PHP打印的JSON字符串：</label>
+            <textarea id="json-input" placeholder="粘贴或输入JSON字符串..."></textarea>
+            <div class="button-group">
+                <button id="format-btn" class="btn btn-primary">格式化</button>
+                <button id="to-query-btn" class="btn btn-info">转queryStr</button>
+                <button id="booky-to-query-btn" class="btn btn-info">识别url和data并转queryStr</button>
+                <button id="clear-btn" class="btn btn-secondary">清空</button>
+                <button id="copy-btn" class="btn btn-success">复制结果</button>
+                <button id="paste-btn" class="btn btn-info">粘贴</button>
+            </div>
+        </div>
+
+        <div class="result-section">
+            <label for="json-output">格式化结果：</label>
+            <div class="result-container">
+                <pre id="json-output"></pre>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+
+        <div class="features">
+            <button id="minify-btn" class="btn btn-warning">压缩JSON</button>
+            <button id="validate-btn" class="btn btn-info">验证JSON</button>
+            <button id="load-example" class="btn btn-info">加载示例</button>
+            <div class="view-mode-selector">
+                <label for="default-view-mode">下次打开方式：</label>
+                <select id="default-view-mode" class="btn">
+                    <option value="tab">Tab</option>
+                    <option value="popup">Popup</option>
+                </select>
+            </div>
+            <label class="checkbox-label">
+                <input type="checkbox" id="auto-format" checked>
+                粘贴时自动格式化
+            </label>
+        </div>
+
+        <div class="footer">
+            <p>支持JSON字符串和JavaScript对象格式化</p>
+        </div>
+    </div>
+
+    <script src="tab.js"></script>
+</body>
+</html>
