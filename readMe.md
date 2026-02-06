@@ -61,3 +61,6 @@ id=123123&name=haha
 http://www.baba.com/a/b/c?id=123123&name=haha
 ```
 
+### 右键功能
+## phpJsonFormat -> request转queryStr
+简化操作链路：将备选中的内容，自动通过request的转queryStr功能，将其转换为url + queryStr格式。

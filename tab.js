@@ -9,7 +9,7 @@ class TabJSONFormatter {
         this.minifyBtn = document.getElementById('minify-btn');
         this.validateBtn = document.getElementById('validate-btn');
         this.toQueryBtn = document.getElementById('to-query-btn');
-        this.bookyToQueryBtn = document.getElementById('booky-to-query-btn');
+        this.requestToQueryBtn = document.getElementById('request-to-query-btn');
         this.status = document.getElementById('status');
         this.autoFormatCheckbox = document.getElementById('auto-format');
         this.defaultViewModeSelect = document.getElementById('default-view-mode');
@@ -29,7 +29,7 @@ class TabJSONFormatter {
         this.minifyBtn.addEventListener('click', () => this.minifyJSON());
         this.validateBtn.addEventListener('click', () => this.validateJSON());
         this.toQueryBtn.addEventListener('click', () => this.convertToQueryString());
-        this.bookyToQueryBtn.addEventListener('click', () => this.convertBookyToUrlWithQuery());
+        this.requestToQueryBtn.addEventListener('click', () => this.convertRequestToUrlWithQuery());
         this.loadExampleBtn.addEventListener('click', () => this.loadExample());
         this.defaultViewModeSelect.addEventListener('change', (e) => this.setDefaultViewMode(e.target.value));
         
@@ -56,7 +56,33 @@ class TabJSONFormatter {
                 let processed = this.convertJsObjectToJson(str);
                 return JSON.parse(processed);
             } catch (jsError) {
-                throw new Error(`JSON解析失败:\n标准JSON错误: ${standardError.message}\nJS对象转换错误: ${jsError.message}`);
+                // 尝试检测并移除最后面多余的"," 
+                try {
+                    let trimmedStr = str.trim();
+                    // 检查是否以","结尾，并且前面有"}"或"]"
+                    if (trimmedStr.endsWith(',')) {
+                        // 找到最后一个"}"或"]"
+                        const lastBraceIndex = Math.max(
+                            trimmedStr.lastIndexOf('}'),
+                            trimmedStr.lastIndexOf(']')
+                        );
+                        if (lastBraceIndex > -1) {
+                            // 检查最后一个"}"或"]"后面是否只有空格和一个"," 
+                            const afterBrace = trimmedStr.substring(lastBraceIndex + 1).trim();
+                            if (afterBrace === ',') {
+                                // 移除多余的"," 
+                                trimmedStr = trimmedStr.substring(0, lastBraceIndex + 1) + trimmedStr.substring(lastBraceIndex + 1).replace(/,\s*$/, '');
+                                // 再次尝试解析
+                                let processed = this.convertJsObjectToJson(trimmedStr);
+                                return JSON.parse(processed);
+                            }
+                        }
+                    }
+                    // 如果没有多余的","或处理后仍然失败，抛出原始错误
+                    throw new Error(`JSON解析失败:\n标准JSON错误: ${standardError.message}\nJS对象转换错误: ${jsError.message}`);
+                } catch (finalError) {
+                    throw new Error(`JSON解析失败:\n标准JSON错误: ${standardError.message}\nJS对象转换错误: ${jsError.message}\n尝试修复错误: ${finalError.message}`);
+                }
             }
         }
     }
@@ -327,7 +353,7 @@ class TabJSONFormatter {
         return parts.join('&');
     }
 
-    convertBookyToUrlWithQuery() {
+    convertRequestToUrlWithQuery() {
         try {
             const input = this.jsonInput.value.trim();
             if (!input) {
@@ -487,6 +513,7 @@ class TabJSONFormatter {
     checkForSharedData() {
         const urlParams = new URLSearchParams(window.location.search);
         const sharedData = urlParams.get('data');
+        const requestContent = urlParams.get('requestContent');
         
         if (sharedData) {
             try {
@@ -499,6 +526,17 @@ class TabJSONFormatter {
                 }
             } catch (error) {
                 console.error('解析共享数据失败:', error);
+            }
+        } else if (requestContent) {
+            // 处理来自右键菜单的request内容
+            try {
+                const content = decodeURIComponent(requestContent);
+                this.jsonInput.value = content;
+                // 自动调用request转queryStr功能
+                setTimeout(() => this.convertRequestToUrlWithQuery(), 100);
+            } catch (error) {
+                console.error('解析request内容失败:', error);
+                this.showStatus('解析request内容失败: ' + error.message, 'error');      
             }
         }
     }

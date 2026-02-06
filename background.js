@@ -1,6 +1,40 @@
 // 后台服务，处理Tab页打开
 chrome.runtime.onInstalled.addListener(() => {
   console.log('JSON Formatter扩展已安装');
+  
+  // 创建右键菜单
+  createContextMenus();
+});
+
+// 创建右键菜单
+function createContextMenus() {
+  // 创建主菜单
+  chrome.contextMenus.create({
+    id: 'phpJsonFormat',
+    title: 'phpJsonFormat',
+    contexts: ['selection'] // 只在选中文本时显示
+  });
+  
+  // 创建子菜单 - request转queryStr
+  chrome.contextMenus.create({
+    id: 'requestToQuery',
+    parentId: 'phpJsonFormat',
+    title: 'request转queryStr',
+    contexts: ['selection'] // 只在选中文本时显示
+  });
+}
+
+// 监听右键菜单点击
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'requestToQuery' && info.selectionText) {
+    // 获取选中的内容
+    const selectedText = info.selectionText;
+    
+    // 打开tab.html页面，并传递选中的内容
+    const tabUrl = chrome.runtime.getURL('tab.html') + '?requestContent=' + encodeURIComponent(selectedText);
+    
+    chrome.tabs.create({ url: tabUrl });
+  }
 });
 
 // 监听来自popup的消息
