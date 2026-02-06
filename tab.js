@@ -303,7 +303,17 @@ class TabJSONFormatter {
             
             if (output && !output.includes('错误') && !output.includes('无法解析')) {
                 // 从输出获取格式化的JSON
-                jsonData = JSON.parse(output);
+                try {
+                    jsonData = JSON.parse(output);
+                } catch (e) {
+                    // 如果输出不是有效的JSON格式（例如URL字符串），则从输入获取
+                    if (input) {
+                        jsonData = this.parseEnhancedJSON(input);
+                    } else {
+                        this.showStatus('请输入JSON字符串', 'error');
+                        return;
+                    }
+                }
             } else if (input) {
                 // 从输入获取JSON
                 jsonData = this.parseEnhancedJSON(input);
@@ -550,19 +560,15 @@ class TabJSONFormatter {
         id: "u",
         json: "{\\"flightNo\\":\\"\\"}",
         order: {
-            usernameCn: "小",
-            usernameTitle: "Mr",
-            phoneCode: "+86",
-            phone: "",
-            email: "z"
+            cn: "小",
+            title: "Mr"
         }
     },
     contact: {
         title: "male",
         name: "小"
     },
-    id: "123456",
-    appId: "Ya"
+    id: "123456"
 }`;
         this.jsonInput.value = example;
         this.formatJSON();

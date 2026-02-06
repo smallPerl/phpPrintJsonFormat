@@ -397,19 +397,15 @@ class JSONFormatter {
         id: "u",
         json: "{\\"flightNo\\":\\"\\"}",
         order: {
-            usernameCn: "小",
-            usernameTitle: "Mr",
-            phoneCode: "+86",
-            phone: "",
-            email: "z"
+            cn: "小",
+            title: "Mr"
         }
     },
     contact: {
         title: "male",
         name: "小"
     },
-    id: "123456",
-    appId: "Ya"
+    id: "123456"
 }`;
         this.jsonInput.value = example;
         this.formatJSON();
