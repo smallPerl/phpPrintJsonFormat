@@ -1,0 +1,39 @@
+输入示例1：
+{
+    oev: "",
+    id: "123123",
+    name: "",
+    fame: "fafa"
+},
+
+--- 
+
+输入示例2：
+{id=123466, code=Pd3, remark=, source=POW, type=123, title=提交, message=请点击：<a target='_blank' href='http://www.abc.com?a=1&b=2&c=3' >查看</a>,od=33333}
+
+--- 
+
+输入示例3：
+{
+        detail: {
+            sametri: "",
+            flightNo: "",
+            id: "u",
+            json: "{\"flightNo\":\"\"}",
+            order: {
+                cn: "小",
+                title: "M"
+            }
+    }
+}
+
+---
+
+输入示例4：
+url: "http://www.baba.com/a/b/c",
+post_data: {
+    id: "123123",
+    name: "haha"
+},
+
+---
