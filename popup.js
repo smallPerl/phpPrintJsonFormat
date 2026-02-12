@@ -56,161 +56,11 @@ class JSONFormatter {
     // ==================== JSON解析和转换核心方法 ====================
     
     parseEnhancedJSON(str) {
-        try {
-            // 首先尝试标准JSON解析
-            return JSON.parse(str);
-        } catch (standardError) {
-            try {
-                // 处理JavaScript对象字面量
-                let processed = this.convertJsObjectToJson(str);
-                return JSON.parse(processed);
-            } catch (jsError) {
-                throw new Error(`JSON解析失败:\n标准JSON错误: ${standardError.message}\nJS对象转换错误: ${jsError.message}`);
-            }
-        }
+        return window.JsonUtils.parseEnhancedJSON(str);
     }
 
     convertJsObjectToJson(jsString) {
-        let str = jsString.trim();
-        
-        // 1. 移除变量声明和分号
-        str = str.replace(/^(var|let|const|function|return|export\s+default)\s+[^{]*=/, '');
-        str = str.replace(/;[^}]*$/, '');
-        
-        // 2. 找到第一个 { 或 [ 开始的位置
-        const startMatch = str.match(/[{\[]/);
-        if (!startMatch) {
-            throw new Error('未找到有效的JSON对象或数组起始符');
-        }
-        
-        const startIndex = str.indexOf(startMatch[0]);
-        if (startIndex > 0) {
-            str = str.substring(startIndex);
-        }
-        
-        // 3. 找到最后一个匹配的 } 或 ]
-        let braceCount = 0;
-        let bracketCount = 0;
-        let endIndex = -1;
-        let inString = false;
-        let currentQuote = '';
-        
-        for (let i = 0; i < str.length; i++) {
-            const char = str[i];
-            const prevChar = i > 0 ? str[i - 1] : '';
-            
-            if ((char === '"' || char === "'") && prevChar !== '\\') {
-                if (!inString) {
-                    inString = true;
-                    currentQuote = char;
-                } else if (char === currentQuote) {
-                    inString = false;
-                    currentQuote = '';
-                }
-            }
-            
-            if (!inString) {
-                if (char === '{') braceCount++;
-                else if (char === '}') braceCount--;
-                else if (char === '[') bracketCount++;
-                else if (char === ']') bracketCount--;
-                
-                if (braceCount === 0 && bracketCount === 0) {
-                    endIndex = i;
-                }
-            }
-        }
-        
-        if (endIndex !== -1 && endIndex < str.length - 1) {
-            str = str.substring(0, endIndex + 1);
-        }
-        
-        // 4. 转换单引号字符串为双引号字符串
-        str = this.convertSingleQuotes(str);
-        
-        // 5. 给属性名添加双引号
-        str = this.quotePropertyNames(str);
-        
-        return str;
-    }
-
-    convertSingleQuotes(str) {
-        let result = '';
-        let inString = false;
-        let quoteType = '';
-        
-        for (let i = 0; i < str.length; i++) {
-            const char = str[i];
-            const prevChar = i > 0 ? str[i - 1] : '';
-            
-            if ((char === '"' || char === "'") && prevChar !== '\\') {
-                if (!inString) {
-                    inString = true;
-                    quoteType = char;
-                    result += '"';
-                } else if (char === quoteType) {
-                    inString = false;
-                    quoteType = '';
-                    result += '"';
-                } else {
-                    result += char;
-                }
-            } else {
-                result += char;
-            }
-        }
-        
-        return result;
-    }
-
-    quotePropertyNames(str) {
-        let result = '';
-        let inString = false;
-        
-        for (let i = 0; i < str.length; i++) {
-            const char = str[i];
-            const prevChar = i > 0 ? str[i - 1] : '';
-            
-            if (char === '"' && prevChar !== '\\') {
-                inString = !inString;
-                result += char;
-                continue;
-            }
-            
-            if (!inString && (char === '{' || char === ',')) {
-                result += char;
-                
-                let j = i + 1;
-                while (j < str.length && /\s/.test(str[j])) {
-                    result += str[j];
-                    j++;
-                }
-                
-                if (j < str.length && /[a-zA-Z_$]/.test(str[j])) {
-                    let propName = '';
-                    let k = j;
-                    while (k < str.length && /[a-zA-Z0-9_$]/.test(str[k])) {
-                        propName += str[k];
-                        k++;
-                    }
-                    
-                    let l = k;
-                    while (l < str.length && /\s/.test(str[l])) {
-                        l++;
-                    }
-                    
-                    if (l < str.length && str[l] === ':') {
-                        result += '"' + propName + '"';
-                        i = k - 1;
-                        continue;
-                    }
-                }
-            } else {
-                result += char;
-            }
-        }
-        
-        return result;
+        return window.JsonUtils.convertJsObjectToJson(jsString);
     }
 
     // ==================== 主要功能方法 ====================
@@ -393,12 +243,11 @@ class JSONFormatter {
         const example = `{
     detail: {
         sameTri: "",
-        flightNo: "",
         id: "u",
         json: "{\\"flightNo\\":\\"\\"}",
         order: {
             cn: "小",
-            title: "Mr"
+            title: "M"
         }
     },
     contact: {
@@ -451,67 +300,24 @@ class JSONFormatter {
             console.error('加载设置失败:', error);
         }
     }
-
-    // ==================== 尝试修复损坏的JSON（备用方法） ====================
-    
-    attemptFixBrokenJSON(str) {
-        let result = str;
-        
-        // 1. 确保字符串以 { 或 [ 开头
-        if (!/^[\{\[]/.test(result.trim())) {
-            result = '{' + result;
-        }
-        
-        // 2. 确保字符串以 } 或 ] 结尾
-        if (!/[\}\]]$/.test(result.trim())) {
-            result = result + '}';
-        }
-        
-        // 3. 添加缺失的引号
-        result = result.replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
-        
-        // 4. 移除注释（单行和多行）
-        result = result.replace(/\/\/.*$/gm, '');
-        result = result.replace(/\/\*[\s\S]*?\*\//g, '');
-        
-        // 5. 修复可能的未闭合引号
-        const lines = result.split('\n');
-        let inString = false;
-        let quoteChar = '';
-        
-        for (let i = 0; i < lines.length; i++) {
-            let line = lines[i];
-            for (let j = 0; j < line.length; j++) {
-                const char = line[j];
-                const prevChar = j > 0 ? line[j - 1] : '';
-                
-                if (!inString && (char === '"' || char === "'") && prevChar !== '\\') {
-                    inString = true;
-                    quoteChar = char;
-                } else if (inString && char === quoteChar && prevChar !== '\\') {
-                    inString = false;
-                    quoteChar = '';
-                }
-            }
-            
-            // 如果行结束时仍在字符串中，添加闭合引号
-            if (inString && i < lines.length - 1) {
-                lines[i] = line + quoteChar;
-                inString = false;
-                quoteChar = '';
-            }
-        }
-        
-        result = lines.join('\n');
-        
-        return result;
-    }
 }
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', () => {
     const formatter = new JSONFormatter();
     
+    // 引入JsonUtils工具类 - 动态加载
+    function loadJsonUtils(callback) {
+        const script = document.createElement('script');
+        script.src = 'json-utils.js';
+        script.onload = callback;
+        script.onerror = () => console.error('Failed to load json-utils.js');
+        document.head.appendChild(script);
+    }
+
+    // 初始化页面的格式化工具
+    loadJsonUtils(formatter);
+
     // 检查URL参数（从Tab页跳转回来时可能带有数据）
     const urlParams = new URLSearchParams(window.location.search);
     const sharedInput = urlParams.get('input');
