@@ -95,7 +95,7 @@ class TabJSONFormatter {
         str = str.replace(/;[^}]*$/, '');
         
         // 找到第一个 { 或 [ 开始的位置
-        const startMatch = str.match(/[{\[]/);
+        const startMatch = str.match(/[\{\[]/);
         if (!startMatch) {
             throw new Error('未找到有效的JSON对象或数组起始符');
         }
@@ -111,29 +111,45 @@ class TabJSONFormatter {
         let endIndex = -1;
         let inString = false;
         let currentQuote = '';
+        let inHtmlTag = false;
+        let htmlTagLevel = 0;
         
         for (let i = 0; i < str.length; i++) {
             const char = str[i];
             const prevChar = i > 0 ? str[i - 1] : '';
             
-            if ((char === '"' || char === "'") && prevChar !== '\\') {
-                if (!inString) {
-                    inString = true;
-                    currentQuote = char;
-                } else if (char === currentQuote) {
-                    inString = false;
-                    currentQuote = '';
+            // 处理HTML标签
+            if (char === '<' && !inString) {
+                inHtmlTag = true;
+                htmlTagLevel++;
+            } else if (char === '>' && !inString) {
+                htmlTagLevel--;
+                if (htmlTagLevel === 0) {
+                    inHtmlTag = false;
                 }
             }
             
-            if (!inString) {
-                if (char === '{') braceCount++;
-                else if (char === '}') braceCount--;
-                else if (char === '[') bracketCount++;
-                else if (char === ']') bracketCount--;
+            // 只有在非HTML标签内才处理字符串状态
+            if (!inHtmlTag) {
+                if ((char === '"' || char === "'") && prevChar !== '\\') {
+                    if (!inString) {
+                        inString = true;
+                        currentQuote = char;
+                    } else if (char === currentQuote) {
+                        inString = false;
+                        currentQuote = '';
+                    }
+                }
                 
-                if (braceCount === 0 && bracketCount === 0) {
-                    endIndex = i;
+                if (!inString) {
+                    if (char === '{') braceCount++;
+                    else if (char === '}') braceCount--;
+                    else if (char === '[') bracketCount++;
+                    else if (char === ']') bracketCount--;
+                    
+                    if (braceCount === 0 && bracketCount === 0) {
+                        endIndex = i;
+                    }
                 }
             }
         }
@@ -142,13 +158,128 @@ class TabJSONFormatter {
             str = str.substring(0, endIndex + 1);
         }
         
-        // 转换单引号字符串为双引号字符串
-        str = this.convertSingleQuotes(str);
+        // 处理使用等号或冒号的键值对格式
+        let processedStr = str;
         
-        // 给属性名添加双引号
-        str = this.quotePropertyNames(str);
+        // 检查是否包含等号格式的键值对
+        if (processedStr.includes('=')) {
+            // 处理等号格式的键值对
+            // 第二步：去掉开头的{和结尾的}
+            let content = processedStr.trim();
+            if (content.startsWith('{')) {
+                content = content.substring(1);
+            }
+            if (content.endsWith('}')) {
+                content = content.substring(0, content.length - 1);
+            }
+            
+            // 第三步：按,分割键值对，注意HTML标签内的逗号和值中的逗号
+            const pairs = [];
+            let currentPair = '';
+            let inHtmlTag = false;
+            let htmlTagLevel = 0;
+            let inValuePart = false;
+            
+            for (let i = 0; i < content.length; i++) {
+                const char = content[i];
+                
+                if (char === '<') {
+                    inHtmlTag = true;
+                    htmlTagLevel++;
+                    currentPair += char;
+                } else if (char === '>') {
+                    htmlTagLevel--;
+                    if (htmlTagLevel === 0) {
+                        inHtmlTag = false;
+                    }
+                    currentPair += char;
+                } else if (char === '=' && !inHtmlTag) {
+                    inValuePart = true;
+                    currentPair += char;
+                } else if (char === ',' && !inHtmlTag) {
+                    // 检查这个逗号是否是键值对分隔符
+                    let nextCharIndex = i + 1;
+                    // 跳过空格
+                    while (nextCharIndex < content.length && /\s/.test(content[nextCharIndex])) {
+                        nextCharIndex++;
+                    }
+                    // 检查下一个非空字符是否是有效的键名开头
+                    const nextChar = content[nextCharIndex];
+                    if (nextChar && /[a-zA-Z_$]/.test(nextChar)) {
+                        // 这是一个键值对分隔符
+                        pairs.push(currentPair.trim());
+                        currentPair = '';
+                        inValuePart = false;
+                    } else {
+                        // 这是值内部的逗号，保留它
+                        currentPair += char;
+                    }
+                } else {
+                    currentPair += char;
+                }
+            }
+            
+            // 添加最后一个键值对
+            if (currentPair.trim()) {
+                pairs.push(currentPair.trim());
+            }
+            
+            // 第四步：处理每个键值对
+            const jsonPairs = [];
+            
+            for (const pair of pairs) {
+                // 找到第一个=的位置，注意HTML标签内的=
+                let equalIndex = -1;
+                let inTag = false;
+                let tagLevel = 0;
+                
+                for (let i = 0; i < pair.length; i++) {
+                    const char = pair[i];
+                    
+                    if (char === '<') {
+                        inTag = true;
+                        tagLevel++;
+                    } else if (char === '>') {
+                        tagLevel--;
+                        if (tagLevel === 0) {
+                            inTag = false;
+                        }
+                    } else if (char === '=' && !inTag) {
+                        equalIndex = i;
+                        break;
+                    }
+                }
+                
+                if (equalIndex !== -1) {
+                    const key = pair.substring(0, equalIndex).trim();
+                    const value = pair.substring(equalIndex + 1).trim();
+                    
+                    // 给键和值添加引号，注意转义值中的双引号
+                    const escapedValue = value.replace(/"/g, '\\"');
+                    const jsonPair = `"${key}": "${escapedValue}"`;
+                    jsonPairs.push(jsonPair);
+                }
+            }
+            
+            // 第五步：重新组合成JSON格式
+            processedStr = `{${jsonPairs.join(', ')}}`;
+        } else {
+            // 处理冒号格式的键值对（如{key: value}）
+            // 移除多余的结尾逗号
+            processedStr = processedStr.replace(/,\s*([}\]])/g, '$1');
+            
+            // 给键名添加双引号
+            processedStr = processedStr.replace(/([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '"$1":');
+        }
+        
+        str = processedStr;
         
         return str;
+    }
+
+    isValueWithoutQuotes(value) {
+        // 所有值都转为字符串类型，都需要引号
+        return false;
     }
 
     convertSingleQuotes(str) {
