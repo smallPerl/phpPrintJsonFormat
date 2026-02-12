@@ -10,6 +10,7 @@ class TabJSONFormatter {
         this.validateBtn = document.getElementById('validate-btn');
         this.toQueryBtn = document.getElementById('to-query-btn');
         this.requestToQueryBtn = document.getElementById('request-to-query-btn');
+        this.toFormDataBtn = document.getElementById('to-form-data-btn');
         this.status = document.getElementById('status');
         this.autoFormatCheckbox = document.getElementById('auto-format');
         this.defaultViewModeSelect = document.getElementById('default-view-mode');
@@ -30,6 +31,7 @@ class TabJSONFormatter {
         this.validateBtn.addEventListener('click', () => this.validateJSON());
         this.toQueryBtn.addEventListener('click', () => this.convertToQueryString());
         this.requestToQueryBtn.addEventListener('click', () => this.convertRequestToUrlWithQuery());
+        this.toFormDataBtn.addEventListener('click', () => this.convertToFormData());
         this.loadExampleBtn.addEventListener('click', () => this.loadExample());
         this.defaultViewModeSelect.addEventListener('change', (e) => this.setDefaultViewMode(e.target.value));
         
@@ -186,6 +188,67 @@ class TabJSONFormatter {
         }
         
         return parts.join('&');
+    }
+
+    convertToFormData() {
+        try {
+            let jsonData;
+            const input = this.jsonInput.value.trim();
+            const output = this.jsonOutput.textContent.trim();
+            
+            if (output && !output.includes('错误') && !output.includes('无法解析')) {
+                try {
+                    jsonData = JSON.parse(output);
+                } catch (e) {
+                    if (input) {
+                        jsonData = this.parseEnhancedJSON(input);
+                    } else {
+                        this.showStatus('请输入JSON字符串', 'error');
+                        return;
+                    }
+                }
+            } else if (input) {
+                jsonData = this.parseEnhancedJSON(input);
+            } else {
+                this.showStatus('请输入JSON字符串', 'error');
+                return;
+            }
+
+            const formDataLines = this.buildFormData(jsonData);
+            this.jsonOutput.textContent = formDataLines.join('\n');
+            this.showStatus('转换为form-data成功', 'success');
+        } catch (error) {
+            this.showStatus('错误: ' + error.message, 'error');
+            this.jsonOutput.textContent = error.message;
+        }
+    }
+
+    buildFormData(obj, prefix = '') {
+        const lines = [];
+        
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                const value = obj[key];
+                const fullKey = prefix ? `${prefix}[${key}]` : key;
+                
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    lines.push(...this.buildFormData(value, fullKey));
+                } else if (Array.isArray(value)) {
+                    value.forEach((item, index) => {
+                        const arrayKey = `${fullKey}[${index}]`;
+                        if (item && typeof item === 'object') {
+                            lines.push(...this.buildFormData(item, arrayKey));
+                        } else {
+                            lines.push(`${arrayKey}:${item}`);
+                        }
+                    });
+                } else {
+                    lines.push(`${fullKey}:${value}`);
+                }
+            }
+        }
+        
+        return lines;
     }
 
     convertRequestToUrlWithQuery() {
