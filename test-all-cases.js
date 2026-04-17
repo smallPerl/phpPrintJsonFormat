@@ -40,6 +40,10 @@ const testCases = [
     {
         name: '测试用例4：包含URL和post_data',
         input: 'url: " http://www.baba.com/a/b/c ", \n post_data: {\n     id: "123123", \n     name: "haha" \n },'
+    },
+    {
+        name: '测试用例5：包含URL斜杠的JSON',
+        input: '{ ya: { qrcode: " https://www.aa.com/tatic/13/74/12313123.jpg " } }'
     }
 ];
 

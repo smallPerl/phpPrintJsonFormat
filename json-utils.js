@@ -40,6 +40,53 @@ class JsonUtils {
         }
     }
 
+    // 给键名添加双引号，跳过字符串值中的冒号
+    static _addQuotesToKeys(str) {
+        let result = '';
+        let inString = false;
+        let currentQuote = '';
+        let keyBuffer = '';
+
+        for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            const prevChar = i > 0 ? str[i - 1] : '';
+
+            if (!inString && (char === '"' || char === "'") && prevChar !== '\\') {
+                inString = true;
+                currentQuote = char;
+                result += keyBuffer + char;
+                keyBuffer = '';
+            } else if (inString && char === currentQuote && prevChar !== '\\') {
+                inString = false;
+                currentQuote = '';
+                result += char;
+            } else if (inString) {
+                result += char;
+            } else {
+                if (char === ':') {
+                    const trimmedKey = keyBuffer.trim();
+                    if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(trimmedKey)) {
+                        result += '"' + trimmedKey + '":';
+                    } else {
+                        result += keyBuffer + ':';
+                    }
+                    keyBuffer = '';
+                } else {
+                    keyBuffer += char;
+                    if (char === '{' || char === '[' || char === '}' || char === ']' || char === ',') {
+                        result += keyBuffer;
+                        keyBuffer = '';
+                    }
+                }
+            }
+        }
+
+        result += keyBuffer;
+        result = result.replace(/,\s*([}\]])/g, '$1');
+
+        return result;
+    }
+
     // 将JS对象字符串转换为JSON格式
     static convertJsObjectToJson(jsString) {
         let str = jsString.trim();
@@ -221,9 +268,9 @@ class JsonUtils {
             // 处理冒号格式的键值对（如{key: value}）
             // 移除多余的结尾逗号
             processedStr = processedStr.replace(/,\s*([}\]])/g, '$1');
-            
-            // 给键名添加双引号
-            processedStr = processedStr.replace(/([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '"$1":');
+
+            // 给键名添加双引号，同时跳过字符串值中的冒号
+            processedStr = JsonUtils._addQuotesToKeys(processedStr);
         }
         
         str = processedStr;
