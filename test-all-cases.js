@@ -44,6 +44,10 @@ const testCases = [
     {
         name: '测试用例5：包含URL斜杠的JSON',
         input: '{ ya: { qrcode: " https://www.aa.com/tatic/13/74/12313123.jpg " } }'
+    },
+    {
+        name: '测试用例6：包含charset的JSON',
+        input: '{ content_type: "application/json; charset=UTF-8" }'
     }
 ];
 

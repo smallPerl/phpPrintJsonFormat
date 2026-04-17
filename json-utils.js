@@ -87,6 +87,56 @@ class JsonUtils {
         return result;
     }
 
+    // 检查字符串是否使用等号作为键值对分隔符
+    // 排除字符串内部的等号（如 "charset=UTF-8"）
+    static _hasEqualSeparator(str) {
+        let inString = false;
+        let currentQuote = '';
+        let inHtmlTag = false;
+        let htmlTagLevel = 0;
+
+        for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            const prevChar = i > 0 ? str[i - 1] : '';
+
+            // 处理HTML标签
+            if (char === '<' && !inString) {
+                inHtmlTag = true;
+                htmlTagLevel++;
+            } else if (char === '>' && !inString) {
+                htmlTagLevel--;
+                if (htmlTagLevel === 0) {
+                    inHtmlTag = false;
+                }
+            }
+
+            // 只有在非HTML标签内才处理字符串状态
+            if (!inHtmlTag) {
+                if ((char === '"' || char === "'") && prevChar !== '\\') {
+                    if (!inString) {
+                        inString = true;
+                        currentQuote = char;
+                    } else if (char === currentQuote) {
+                        inString = false;
+                        currentQuote = '';
+                    }
+                }
+
+                // 在字符串外部找到等号
+                if (char === '=' && !inString) {
+                    // 检查等号前是否是有效的键名字符（等号格式：{key=value}）
+                    // 或者等号前是逗号或花括号（等号格式：{key=value, ...}）
+                    const prevChar = str[i - 1];
+                    if (/[a-zA-Z0-9_$]/.test(prevChar) || prevChar === ',' || prevChar === '{') {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     // 将JS对象字符串转换为JSON格式
     static convertJsObjectToJson(jsString) {
         let str = jsString.trim();
@@ -161,9 +211,12 @@ class JsonUtils {
         
         // 处理使用等号或冒号的键值对格式
         let processedStr = str;
-        
+
         // 检查是否包含等号格式的键值对
-        if (processedStr.includes('=')) {
+        // 需要排除字符串内部的等号（如 "charset=UTF-8"）
+        const isEqualFormat = JsonUtils._hasEqualSeparator(processedStr);
+
+        if (isEqualFormat) {
             // 处理等号格式的键值对
             // 第二步：去掉开头的{和结尾的}
             let content = processedStr.trim();
